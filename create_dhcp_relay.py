@@ -1,9 +1,20 @@
 from firepyer import Fdm
 from pprint import pprint
-from menu import menu
+
+# from menu import menu
 import ipaddress
 import getpass
 import json
+
+
+def menu(options):
+    """
+    This function will display a menu of options to the user and return the user's choice.
+    """
+    for option in options:
+        print(f"{options.index(option)}: {option}")
+    choice = input("Enter your choice: ")
+    return choice
 
 
 def main():
