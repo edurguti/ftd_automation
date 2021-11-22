@@ -10,7 +10,7 @@ def main():
     while True:
         try:
             ftd_ip_address = ipaddress.ip_address(
-                input("Enter IP address of the FTD (accessible via API/http): ")
+                input("Enter IP address of the FTD device (accessible via API/http): ")
             )
             break
         except ValueError:
@@ -58,7 +58,6 @@ def main():
         get_sub_interfaces = fdm.get_subinterfaces(x)
         for y in get_sub_interfaces:
             if y["name"] != "":
-                # pprint(y)
                 interface_choices.append(
                     {
                         "name": y["name"],
@@ -81,7 +80,6 @@ def main():
 
     # Where to enable DHCP relay on
     print("\nWhat interface-name do you want to enable DHCP relay on?\n")
-    # dhcp_relay_choices = interface_choices[int(menu(interface_choices))]
     while True:
         try:
             dhcp_relay_choices = interface_choices[int(menu(interface_choices))]
@@ -139,6 +137,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# 10.81.249.146
-# 10.81.255.252
