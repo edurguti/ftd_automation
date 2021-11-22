@@ -128,7 +128,7 @@ def main():
     }
 
     put_dhcp_relay_service = fdm.put_api(
-        f"https://10.81.255.252/api/fdm/v6/devicesettings/default/dhcprelayservices/{dhcp_relay_service_id}",
+        f"https://{ftd_ip_address}/api/fdm/v6/devicesettings/default/dhcprelayservices/{dhcp_relay_service_id}",
         json.dumps(dhcp_service_payload),
     )
 
