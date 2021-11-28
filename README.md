@@ -5,4 +5,4 @@ Python 3.9 (3.8+ is required due to walrus operator)<br>
 Follow User Prompt<br>
 
 Or via Docker: <br>
-```docker run -it edondurguti/cisco_ftd_create_dhcp_relay```
+```docker run -it edondurguti/ftd_create_dhcp_relay```
