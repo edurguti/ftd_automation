@@ -1,0 +1,53 @@
+{
+    "version": "mshltqqmjoego",
+    "name": "dhcp_relay_1",
+    "ipv4RelayTimeout": 60,
+    "ipv6RelayTimeout": 60,
+    "servers": [
+        {
+            "server": {
+                "id": "e4dd3b43-4f4e-11ec-a264-232d48e63481",
+                "type": "networkobject"
+            },
+            "interface": {
+                "id": "8d148701-2dc6-11ec-a746-ef1ce08ad4c0",
+                "type": "subinterface"
+            },
+            "type": "dhcprelayserver"
+        }
+    ],
+    "agents": [
+        {
+            "enableIpv4Relay": true,
+            "enableIpv6Relay": false,
+            "setRoute": true,
+            "interface": {
+                "id": "9fd3439a-2dc6-11ec-a746-8f5738ea5086",
+                "type": "subinterface"
+            },
+            "type": "dhcprelayagent"
+        },
+        {
+            "enableIpv4Relay": true,
+            "enableIpv6Relay": false,
+            "setRoute": true,
+            "interface": {
+                "id": "aa721344-2dc6-11ec-a746-478da4297517",
+                "type": "subinterface"
+            },
+            "type": "dhcprelayagent"
+        },
+        {
+            "enableIpv4Relay": true,
+            "enableIpv6Relay": false,
+            "setRoute": true,
+            "interface": {
+                "id": "b58e293a-2dc6-11ec-a746-e1a32a382bea",
+                "type": "subinterface"
+            },
+            "type": "dhcprelayagent"
+        }
+    ],
+    "id": "e826b99e-2d9d-11ec-a746-b3d06f79ebf6",
+    "type": "dhcprelayservice"
+}

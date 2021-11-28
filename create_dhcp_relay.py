@@ -1,10 +1,14 @@
 from firepyer import Fdm
 from pprint import pprint
+import random
+import string
+import time
 
 # from menu import menu
 import ipaddress
 import getpass
 import json
+import sys
 
 
 def menu(options):
@@ -34,6 +38,7 @@ def main():
     fdm = Fdm(
         host=ftd_ip_address, username=ftd_username, password=ftd_password, verify=False
     )
+    hostname = fdm.get_hostname()
 
     while True:
         try:
@@ -44,11 +49,11 @@ def main():
         except ValueError:
             print("Invalid IP address")
             continue
-
     dhcp_relay_service = fdm.get_api_single_item(
         "devicesettings/default/dhcprelayservices"
     )
     dhcp_relay_service_id = dhcp_relay_service["id"]
+    dhcp_relay_service_version = dhcp_relay_service["version"]
     interface_choices = []
     get_physical_intefaces = fdm.get_interfaces()
     physical_interfaces = []
@@ -83,67 +88,139 @@ def main():
     print(f"Hint:\n {show_route}")
     while True:
         try:
-            choices = interface_choices[int(menu(interface_choices))]
+            dhcp_server_interface = interface_choices[int(menu(interface_choices))]
             break
         except (IndexError, ValueError) as e:
             print("Invalid choice, try again")
             continue
 
     # Where to enable DHCP relay on
+    # add all chosen interfaces into the list - need to create an object for each interface
+    dhcp_relay_agent_interfaces = []
     print("\nWhat interface-name do you want to enable DHCP relay on?\n")
     while True:
         try:
-            dhcp_relay_choices = interface_choices[int(menu(interface_choices))]
-            break
+            dhcp_relay_interface = interface_choices[int(menu(interface_choices))]
+            dhcp_relay_agent_interfaces.append(dhcp_relay_interface)
+            print(f"\nYou have selected {dhcp_relay_interface['name']}")
+            print("Do you need to enable dhcp relay on another interface?")
+            loop_choice = input("y/n: ")
+            if loop_choice == "y":
+                continue
+            else:
+                break
         except (IndexError, ValueError) as e:
             print("Invalid choice, try again")
             continue
-    dhcp_relay_server_object = fdm.create_network(
-        f"{str(dhcp_relay_server_ip)}_dhcp_relay", str(dhcp_relay_server_ip), "HOST"
-    )
-    dhcp_relay_server_object_id = dhcp_relay_server_object["id"]
-    dhcp_service_payload = {
-        # "version": dhcp_relay_service_version,
-        "name": "dhcp_relay_1",
-        "ipv4RelayTimeout": 60,
-        "ipv6RelayTimeout": 60,
-        "servers": [
-            {
-                "server": {
-                    "id": dhcp_relay_server_object_id,
-                    "type": "networkobject",
-                },
-                "interface": {
-                    "id": choices["id"],
-                    "type": choices["type"],
-                },
-                "type": "dhcprelayserver",
-            }
-        ],
-        "agents": [
+
+    dhcp_agents = []
+
+    for x in dhcp_relay_agent_interfaces:
+        dhcp_agents_object = {}
+        # print(x["name"])
+        dhcp_agents_object.update(
             {
                 "enableIpv4Relay": True,
                 "enableIpv6Relay": False,
                 "setRoute": True,
-                "interface": {
-                    "id": dhcp_relay_choices["id"],
-                    "type": dhcp_relay_choices["type"],
-                },
+                "interface": {"id": x["id"], "type": x["type"]},
                 "type": "dhcprelayagent",
             }
-        ],
-        "id": dhcp_relay_service_id,
-        "type": "dhcprelayservice",
-    }
+        )
+        dhcp_agents.append(dhcp_agents_object)
+    # print("printing dhcp_agents_object")
 
-    put_dhcp_relay_service = fdm.put_api(
-        f"https://{ftd_ip_address}/api/fdm/v6/devicesettings/default/dhcprelayservices/{dhcp_relay_service_id}",
-        json.dumps(dhcp_service_payload),
+    pprint("*" * 100)
+    pprint("Your Changes:")
+    pprint(
+        f"DHCP Relay Server IP: {dhcp_relay_server_ip}, reachabe via {dhcp_server_interface['name']}"
     )
+    for x in dhcp_relay_agent_interfaces:
+        pprint(f"Enable DHCP Relay on: {x['name']}")
 
-    print(put_dhcp_relay_service.text)
+    deploy_to_ftd = input(f"\nDo you want to deploy this to {hostname}? (y/n): ")
+    if deploy_to_ftd == "y":
 
-    pprint(put_dhcp_relay_service)
+        # create Network object ID, if it exists, compare the value of current ip address vs the input ip address.
+        # if it's the same, re-use the same object, else create a new one and append a random 4 digit/string to the end of the object name
+        try:
+            # create a network object from the IP address.
+            dhcp_relay_server_object = fdm.create_network(
+                f"{str(dhcp_relay_server_ip)}_dhcp_relay",
+                str(dhcp_relay_server_ip),
+                "HOST",
+            )
+        except Exception as e:
+            dhcp_relay_server_object = fdm.get_net_objects(
+                f"{str(dhcp_relay_server_ip)}_dhcp_relay"
+            )
+            # if current ip address is the same as the input ip address, re-use the same object
+            if dhcp_relay_server_object["value"] == dhcp_relay_server_ip:
+                pass
+            else:
+                dhcp_relay_server_object = fdm.create_network(
+                    f"{str(dhcp_relay_server_ip)}_dhcp_relay_new_{''.join(random.choices(string.ascii_lowercase + string.digits, k=4))}",
+                    str(dhcp_relay_server_ip),
+                    "HOST",
+                )
+
+        dhcp_relay_server_object_id = dhcp_relay_server_object["id"]
+
+        dhcp_service_payload = {
+            "version": dhcp_relay_service_version,
+            "name": "dhcp_relay_1",
+            "ipv4RelayTimeout": 60,
+            "ipv6RelayTimeout": 60,
+            "servers": [
+                {
+                    "server": {
+                        "id": dhcp_relay_server_object_id,
+                        "type": "networkobject",
+                    },
+                    "interface": {
+                        "id": dhcp_server_interface["id"],
+                        "type": dhcp_server_interface["type"],
+                    },
+                    "type": "dhcprelayserver",
+                }
+            ],
+            "agents": dhcp_agents,
+            "id": dhcp_relay_service_id,
+            "type": "dhcprelayservice",
+        }
+        # PUT the payload to the device
+        put_dhcp_relay_service = fdm.put_api(
+            f"https://{ftd_ip_address}/api/fdm/v6/devicesettings/default/dhcprelayservices/{dhcp_relay_service_id}",
+            json.dumps(dhcp_service_payload),
+        )
+        if (
+            put_dhcp_relay_service.status_code == 200
+            or put_dhcp_relay_service.status_code == 204
+        ):
+            print("DHCP relay service created successfully... now deploying.")
+        else:
+            print("Something went wrong, try again")
+            response_error = json.loads(put_dhcp_relay_service.text)
+            print(response_error["error"]["messages"][0]["description"])
+            sys.exit(1)
+        deploy_it = fdm.deploy_now()
+        deployment_status = fdm.get_deployment_status(deploy_it)
+        deployment_data = ["QUEUED", "DEPLOYING", "DEPLOYED", "FAILED"]
+        while deployment_status in deployment_data:
+            print(f"Deployment Status: {deployment_status}")
+            deployment_status = fdm.get_deployment_status(deploy_it)
+            if deployment_status == "DEPLOYED":
+                print("Deployment Successful")
+                break
+            elif deployment_status == "FAILED":
+                print("Deployment Failed")
+                break
+            time.sleep(5)
+    elif deploy_to_ftd == "n":
+        print("Changes not deployed")
+    else:
+        print("Invalid choice, try again")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
