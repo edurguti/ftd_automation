@@ -166,32 +166,34 @@ def main():
 
         dhcp_relay_server_object_id = dhcp_relay_server_object["id"]
 
-        dhcp_service_payload = {
-            "version": dhcp_relay_service_version,
-            "name": "dhcp_relay_1",
-            "ipv4RelayTimeout": 60,
-            "ipv6RelayTimeout": 60,
-            "servers": [
-                {
-                    "server": {
-                        "id": dhcp_relay_server_object_id,
-                        "type": "networkobject",
-                    },
-                    "interface": {
-                        "id": dhcp_server_interface["id"],
-                        "type": dhcp_server_interface["type"],
-                    },
-                    "type": "dhcprelayserver",
-                }
-            ],
-            "agents": dhcp_agents,
-            "id": dhcp_relay_service_id,
-            "type": "dhcprelayservice",
+        # get current dhcp servers (so we dont overwrite them)
+        # current_dhcp_servers = dhcp_relay_service["servers"]
+        # add the new dhcp server to the list
+
+        # current_dhcp_servers.append(dhcp_relay_server_object_id)
+        new_dhcp_server = {
+            "server": {
+                "id": dhcp_relay_server_object_id,
+                "type": "networkobject",
+                "name": dhcp_relay_server_object["name"],
+            },
+            "interface": {
+                "id": dhcp_server_interface["id"],
+                "type": dhcp_server_interface["type"],
+            },
+            "type": "dhcprelayserver",
         }
+
+        current_dhcp_service_payload = dhcp_relay_service
+        current_dhcp_service_payload["servers"].append(new_dhcp_server)
+        current_dhcp_service_payload["agents"].append(dhcp_agents_object)
+
         # PUT the payload to the device
+        with open("dhcp_relay_service_payload.json", "w") as f:
+            json.dump(current_dhcp_service_payload, f, indent=4)
         put_dhcp_relay_service = fdm.put_api(
             f"https://{ftd_ip_address}/api/fdm/v6/devicesettings/default/dhcprelayservices/{dhcp_relay_service_id}",
-            json.dumps(dhcp_service_payload),
+            json.dumps(current_dhcp_service_payload),
         )
         if (
             put_dhcp_relay_service.status_code == 200
